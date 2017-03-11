@@ -1,0 +1,75 @@
+---
+title: "CrossTalk demo with Mtcars Data Frame"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard) #devtools::install_github("rstudio/flexdashboard")
+library(crosstalk)
+library(dplyr)
+
+df <- mtcars
+
+df$cyl <- factor(floor(mtcars$cyl), labels = c("four", "six", "eight"))
+df$am[which(df$am == 0)] <- 'Automatic'
+df$am[which(df$am == 1)] <- 'Manual'
+df$am <- as.factor(df$am)
+sd1 <- SharedData$new(df)
+```
+
+Row 1
+### 3d Scatter Plot
+-----------------------------------------------------------------------
+```{r}
+library(plotly)
+p2 <- plot_ly(sd1, x = ~mpg, y = ~wt, z = ~qsec, color = ~cyl) %>%  #plot_ly(sd1, x = ~wt, y = ~hp, z = ~qsec, color = ~am, colors = c('#BF382A', '#0C4B8E'))
+        add_markers() %>%
+        layout(scene = list(xaxis = list(title = 'Weight'),
+                            yaxis = list(title = 'MPG'),
+                            zaxis = list(title = '1/4 mile time')))
+p2
+```
+
+
+### Motor Trend Car Road Tests
+
+```{r}
+library(DT)
+datatable(sd1, rownames = FALSE, extensions = 'Scroller', options = list(
+  scrollY = 200,
+  scroller = TRUE
+))
+```
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+filter_slider("wt", "Weight", sd1, ~wt, step = 1)
+filter_slider("mpg", "MPG", sd1, ~mpg, step = .1)
+filter_select("four", "No. Cylinder", sd1, ~cyl)
+filter_checkbox("cyl", "No. Cylinder", sd1, ~cyl)
+filter_slider("mpg", "Miles per gallon", sd1, "mpg")
+maintain_selection(sd1, "brushid", ownerId = "Tang")
+```
+
+Row 2
+-----------------------------------------------------------------------
+### Wt vs MPG Scatter Plot
+```{r}
+library(ggplot2)
+library(plotly)
+ggplotly(qplot(mpg, wt, data = sd1, col = cyl) + theme_minimal())
+
+```
+
+### Cylinder Bar Chart
+```{r}
+library(plotly)
+library(ggplot2)
+ggplotly(ggplot(sd1, aes(cyl, fill = factor(am))) + geom_bar() + coord_flip() ) 
+```
